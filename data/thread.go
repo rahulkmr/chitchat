@@ -46,7 +46,7 @@ func (thread *Thread) NumReplies() (count int) {
 }
 
 func (thread *Thread) Posts() (posts []Post, err error) {
-	rows, err := Db.Query(`
+	rows, err := Db.Queryx(`
 		select id, uuid, body, user_id, thread_id, created_at from posts where thread_id = $1
 	`, thread.Id)
 	if err != nil {
@@ -54,8 +54,7 @@ func (thread *Thread) Posts() (posts []Post, err error) {
 	}
 	for rows.Next() {
 		post := Post{}
-		if err = rows.Scan(&post.Id, &post.Uuid, &post.Body, &post.UserId, &post.ThreadId,
-			&post.CreatedAt); err != nil {
+		if err = rows.StructScan(post); err != nil {
 			return
 		}
 		posts = append(posts, post)
@@ -69,14 +68,7 @@ func (user *User) CreateThread(topic string) (conv Thread, err error) {
 		insert into threads (uuid, topic, user_id, created_at) values ($1, $2, $3, $4)
 		returning id, uuid, topic, user_id, created_at
 	`
-	stmt, err := Db.Prepare(statement)
-	if err != nil {
-		return
-	}
-	defer stmt.Close()
-	err = stmt.QueryRow(
-		createUUID(), topic, user.Id, time.Now()).Scan(
-		&conv.Id, &conv.Uuid, &conv.Topic, &conv.UserId, &conv.CreatedAt)
+	err = Db.QueryRowx(statement, createUUID(), topic, user.Id, time.Now()).StructScan(&conv)
 	return
 }
 
@@ -86,18 +78,13 @@ func (user *User) CreatePost(conv Thread, body string) (post Post, err error) {
 		values ($1, $2, $3, $4, $5)
 		returning id, uuid, body, user_id, thread_id, created_at
 	`
-	stmt, err := Db.Prepare(statement)
-	if err != nil {
-		return
-	}
-	defer stmt.Close()
-	err = stmt.QueryRow(createUUID(), body, user.Id, conv.Id, time.Now()).Scan(
-		&post.Id, &post.Uuid, &post.Body, &post.UserId, &post.ThreadId, &post.CreatedAt)
+	err = Db.QueryRowx(
+		statement, createUUID(), body, user.Id, conv.Id, time.Now()).StructScan(&post)
 	return
 }
 
 func Threads() (threads []Thread, err error) {
-	rows, err := Db.Query(`
+	rows, err := Db.Queryx(`
 		select id, uuid, topic, user_id, created_at from threads order by created at desc
 	`)
 	if err != nil {
@@ -105,7 +92,7 @@ func Threads() (threads []Thread, err error) {
 	}
 	for rows.Next() {
 		conv := Thread{}
-		if err = rows.Scan(&conv.Id, &conv.Uuid, &conv.Topic, &conv.UserId, &conv.CreatedAt); err != nil {
+		if err = rows.StructScan(&conv); err != nil {
 			return
 		}
 		threads = append(threads, conv)
@@ -116,24 +103,26 @@ func Threads() (threads []Thread, err error) {
 
 func ThreadByUUID(uuid string) (conv Thread, err error) {
 	conv = Thread{}
-	err = Db.QueryRow(`
-	select id, uuid, topic, user_id, created_at from threads where uuid = $1
-	`, uuid).Scan(&conv.Id, &conv.Uuid, &conv.Topic, &conv.UserId, &conv.CreatedAt)
+	err = Db.Get(
+		&conv,
+		`select id, uuid, topic, user_id, created_at from threads where uuid = $1`,
+		uuid)
 	return
 }
 
 func (thread *Thread) User() (user User) {
 	user = User{}
-	Db.QueryRow("select id, uuid, name, email, created_at from users where id = $1",
-		thread.UserId).Scan(
-		&user.Id, &user.Uuid, &user.Name, &user.Email, &user.CreatedAt)
+	Db.Get(
+		&user,
+		"select id, uuid, name, email, created_at from users where id = $1",
+		thread.UserId)
 	return
 }
 
 func (post *Post) User() (user User) {
 	user = User{}
-	Db.QueryRow("select id, uuid, name, email, created_at from users where id = $1",
-		post.UserId).Scan(
-		&user.Id, &user.Uuid, &user.Name, &user.Email, &user.CreatedAt)
+	Db.Get(
+		&user, "select id, uuid, name, email, created_at from users where id = $1",
+		post.UserId)
 	return
 }

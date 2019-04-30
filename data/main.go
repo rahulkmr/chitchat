@@ -3,17 +3,17 @@ package data
 import (
 	"crypto/rand"
 	"crypto/sha1"
-	"database/sql"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"log"
 )
 
-var Db *sql.DB
+var Db *sqlx.DB
 
 func init() {
 	var err error
-	Db, err = sql.Open("postgres", "dbname=chitchat")
+	Db, err = sqlx.Connect("postgres", "dbname=chitchat")
 	if err != nil {
 		log.Fatal(err)
 	}
