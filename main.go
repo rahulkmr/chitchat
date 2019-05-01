@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/rahulkmr/chitchat/data"
 	"net/http"
 	"time"
+
+	"github.com/rahulkmr/chitchat/data"
 )
 
 // GET /err?msg=

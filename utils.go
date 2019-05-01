@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rahulkmr/chitchat/data"
 	"html/template"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/rahulkmr/chitchat/data"
 )
 
 type Configuration struct {
@@ -23,7 +24,7 @@ var config Configuration
 var logger *log.Logger
 
 func p(a ...interface{}) {
-	fmt.Println(a)
+	fmt.Println(a...)
 }
 
 func loadConfig() {

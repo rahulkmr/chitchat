@@ -13,7 +13,7 @@ var Db *sqlx.DB
 
 func init() {
 	var err error
-	Db, err = sqlx.Connect("postgres", "dbname=chitchat")
+	Db, err = sqlx.Connect("postgres", "dbname=chitchat sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}

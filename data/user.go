@@ -10,22 +10,26 @@ type User struct {
 	Name      string
 	Email     string
 	Password  string
-	CreatedAt time.Time
+	CreatedAt time.Time `db:"created_at"`
 }
 
 type Session struct {
 	Id        int
 	Uuid      string
 	Email     string
-	UserId    int
-	CreatedAt time.Time
+	UserId    int       `db:"user_id"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 // Create a new session for an existing user
 func (user *User) CreateSession() (session Session, err error) {
 	statement := "insert into sessions (uuid, email, user_id, created_at) values ($1, $2, $3, $4) returning id, uuid, email, user_id, created_at"
 	err = Db.QueryRowx(
-		statement, createUUID(), user.Email, user.Id, time.Now()).StructScan(&session)
+		statement,
+		createUUID(),
+		user.Email,
+		user.Id,
+		time.Now()).StructScan(&session)
 	return
 }
 
@@ -40,8 +44,9 @@ func (user *User) Session() (session Session, err error) {
 
 // Check if session is valid in the database
 func (session *Session) Check() (valid bool, err error) {
-	err = Db.QueryRowx("SELECT id, uuid, email, user_id, created_at FROM sessions WHERE uuid = $1", session.Uuid).
-		StructScan(session)
+	err = Db.QueryRowx(
+		"SELECT id, uuid, email, user_id, created_at FROM sessions WHERE uuid = $1",
+		session.Uuid).StructScan(session)
 	if err != nil {
 		valid = false
 		return
@@ -81,7 +86,7 @@ func (user *User) Create() (err error) {
 	statement := "insert into users (uuid, name, email, password, created_at) values ($1, $2, $3, $4, $5) returning id, uuid, created_at"
 	err = Db.QueryRowx(
 		statement,
-		createUUID(), user.Name, user.Email, Encrypt(user.Password), time.Now()).StructScan(user)
+		createUUID(), user.Name, user.Email, Encrypt(user.Password), time.Now()).Scan(&user.Id, &user.Uuid, &user.CreatedAt)
 	return
 }
 
@@ -116,8 +121,9 @@ func Users() (users []User, err error) {
 // Get a single user given the email
 func UserByEmail(email string) (user User, err error) {
 	user = User{}
-	err = Db.QueryRow("SELECT id, uuid, name, email, password, created_at FROM users WHERE email = $1", email).
-		Scan(&user.Id, &user.Uuid, &user.Name, &user.Email, &user.Password, &user.CreatedAt)
+	err = Db.QueryRowx(
+		"SELECT id, uuid, name, email, password, created_at FROM users WHERE email = $1",
+		email).Scan(&user)
 	return
 }
 
