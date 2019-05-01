@@ -123,7 +123,7 @@ func UserByEmail(email string) (user User, err error) {
 	user = User{}
 	err = Db.QueryRowx(
 		"SELECT id, uuid, name, email, password, created_at FROM users WHERE email = $1",
-		email).Scan(&user)
+		email).StructScan(&user)
 	return
 }
 
